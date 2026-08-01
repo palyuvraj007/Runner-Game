@@ -9,7 +9,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("I WILL KILL YOU😈")
+st.title("I WILL KILL YOU!")
 st.caption("🎮 **Controls:** WASD / Arrow Keys on PC • Touch D-Pad on Mobile!")
 
 game_code = """
@@ -173,8 +173,12 @@ window.onload = function() {
     let aiTrail = [];
     let lastTime = 0;
 
-    let player = { x: 250, y: 180, radius: 10, speed: 108, baseSpeed: 108 };
-    let ai = { x: 40, y: 40, radius: 12, speed: 72, baseSpeed: 72 };
+    // Base multiplier for normalized delta-time speed
+    const SPEED_MULT = 60;
+
+    // Red AI starts at 1.0, Blue Player starts at 2.0
+    let player = { x: 250, y: 180, radius: 10, speedVal: 2.0, baseSpeedVal: 2.0 };
+    let ai = { x: 40, y: 40, radius: 12, speedVal: 1.0, baseSpeedVal: 1.0 };
     let coin = { x: 380, y: 120, radius: 7, pulse: 0 };
 
     const keys = { up: false, down: false, left: false, right: false };
@@ -185,10 +189,10 @@ window.onload = function() {
         overlay.style.display = "none";
         
         player.x = 250; player.y = 180;
-        player.speed = player.baseSpeed;
+        player.speedVal = player.baseSpeedVal;
         
         ai.x = 40; ai.y = 40;
-        ai.speed = ai.baseSpeed;
+        ai.speedVal = ai.baseSpeedVal;
         
         coin.x = Math.random() * (canvas.width - 60) + 30;
         coin.y = Math.random() * (canvas.height - 60) + 30;
@@ -296,8 +300,8 @@ window.onload = function() {
             moveY *= 0.7071;
         }
 
-        player.x += moveX * player.speed * dt;
-        player.y += moveY * player.speed * dt;
+        player.x += moveX * (player.speedVal * SPEED_MULT) * dt;
+        player.y += moveY * (player.speedVal * SPEED_MULT) * dt;
 
         player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
         player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
@@ -307,8 +311,8 @@ window.onload = function() {
         let dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist > 0) {
-            ai.x += (dx / dist) * ai.speed * dt;
-            ai.y += (dy / dist) * ai.speed * dt;
+            ai.x += (dx / dist) * (ai.speedVal * SPEED_MULT) * dt;
+            ai.y += (dy / dist) * (ai.speedVal * SPEED_MULT) * dt;
         }
 
         let tailLength = Math.floor(4 + (score / 10) * 3);
@@ -327,10 +331,11 @@ window.onload = function() {
             coin.x = Math.random() * (canvas.width - 60) + 30;
             coin.y = Math.random() * (canvas.height - 60) + 30;
             
-            ai.speed += 3;
-            player.speed += 3;
+            // Speed increases exactly by +0.1 for both
+            ai.speedVal += 0.1;
+            player.speedVal += 0.1;
 
-            document.getElementById("speed").innerText = (ai.speed / ai.baseSpeed).toFixed(2) + "x";
+            document.getElementById("speed").innerText = (ai.speedVal / ai.baseSpeedVal).toFixed(2) + "x";
         }
 
         particles.forEach((p, index) => {
@@ -382,7 +387,7 @@ window.onload = function() {
             ctx.beginPath();
             ctx.arc(ai.x, ai.y, ai.radius, 0, Math.PI * 2);
             ctx.fillStyle = "#f85149";
-            ctx.shadowBlur = 10 + ((ai.speed / ai.baseSpeed) * 3);
+            ctx.shadowBlur = 10 + ((ai.speedVal / ai.baseSpeedVal) * 3);
             ctx.shadowColor = "#f85149";
             ctx.fill();
             ctx.shadowBlur = 0;
