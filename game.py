@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="AI Pursuit Ultra", layout="centered", page_icon="🎮")
+st.set_page_config(page_title="THE RUNNER", layout="centered", page_icon="🎮")
 
 st.markdown("""
     <style>
@@ -9,7 +9,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("⚡ AI Pursuit: Ultra Edition")
+st.title("I WILL KILL YOU😈")
 st.caption("🎮 **Controls:** Use Arrow Keys / WASD on PC, or Touch D-Pad on Mobile!")
 
 game_code = """
@@ -58,13 +58,15 @@ game_code = """
         cursor: pointer;
     }
 
+    /* D-Pad with enhanced spacing */
     #dpad {
         display: none;
-        grid-template-columns: repeat(3, 60px);
-        grid-template-rows: repeat(2, 60px);
-        gap: 8px;
-        margin-top: 15px;
-        margin-bottom: 15px;
+        grid-template-columns: repeat(3, 62px);
+        grid-template-rows: repeat(2, 62px);
+        gap: 12px; /* Generous distance between arrows */
+        margin-top: 20px;
+        margin-bottom: 20px;
+        padding: 10px;
         touch-action: manipulation;
     }
 
@@ -78,8 +80,8 @@ game_code = """
         background: #21262d;
         border: 2px solid #30363d;
         color: #58a6ff;
-        font-size: 24px;
-        border-radius: 12px;
+        font-size: 26px;
+        border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -90,7 +92,7 @@ game_code = """
     .dbtn:active {
         background: #1f6feb;
         color: white;
-        transform: scale(0.95);
+        transform: scale(0.92);
     }
     #up { grid-column: 2; grid-row: 1; }
     #left { grid-column: 1; grid-row: 2; }
@@ -121,7 +123,7 @@ window.onload = function() {
 
     canvas.focus();
 
-    let gameState = "START";
+    let gameState = "Let's BEGIN😈";
 
     let score = 0;
     let particles = [];
@@ -131,7 +133,13 @@ window.onload = function() {
     let ai = { x: 40, y: 40, radius: 12, speed: 2.2, baseSpeed: 2.2 };
     let coin = { x: 380, y: 120, radius: 7, pulse: 0 };
 
-    const keys = {};
+    // Explicit state map for input controls
+    const keys = {
+        up: false,
+        down: false,
+        left: false,
+        right: false
+    };
 
     function handleCanvasInteraction(e) {
         if (gameState === "PLAYING") return;
@@ -175,40 +183,51 @@ window.onload = function() {
         coin.y = Math.random() * (canvas.height - 60) + 30;
         particles = [];
         aiTrail = [];
+
+        // Reset inputs on start
+        keys.up = false; keys.down = false;
+        keys.left = false; keys.right = false;
+
         document.getElementById("score").innerText = "0";
         document.getElementById("speed").innerText = "1.0x";
     }
 
+    // Keyboard Listeners (PC)
     document.addEventListener("keydown", function(e) {
-        if(["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
-            e.preventDefault();
-        }
-        keys[e.code] = true;
-        keys[e.key.toLowerCase()] = true;
+        if (["ArrowUp", "KeyW"].includes(e.code)) keys.up = true;
+        if (["ArrowDown", "KeyS"].includes(e.code)) keys.down = true;
+        if (["ArrowLeft", "KeyA"].includes(e.code)) keys.left = true;
+        if (["ArrowRight", "KeyD"].includes(e.code)) keys.right = true;
     });
 
     document.addEventListener("keyup", function(e) {
-        keys[e.code] = false;
-        keys[e.key.toLowerCase()] = false;
+        if (["ArrowUp", "KeyW"].includes(e.code)) keys.up = false;
+        if (["ArrowDown", "KeyS"].includes(e.code)) keys.down = false;
+        if (["ArrowLeft", "KeyA"].includes(e.code)) keys.left = false;
+        if (["ArrowRight", "KeyD"].includes(e.code)) keys.right = false;
     });
 
-    function bindBtn(id, key) {
+    // Reliable Touch & Mouse Button Bindings
+    function bindBtn(id, dir) {
         const btn = document.getElementById(id);
         if (!btn) return;
 
-        const start = (e) => { e.preventDefault(); keys[key] = true; };
-        const end = (e) => { e.preventDefault(); keys[key] = false; };
-        
-        btn.addEventListener("touchstart", start, { passive: false });
-        btn.addEventListener("touchend", end, { passive: false });
-        btn.addEventListener("mousedown", start);
-        btn.addEventListener("mouseup", end);
+        const press = (e) => { e.preventDefault(); keys[dir] = true; };
+        const release = (e) => { e.preventDefault(); keys[dir] = false; };
+
+        btn.addEventListener("touchstart", press, { passive: false });
+        btn.addEventListener("touchend", release, { passive: false });
+        btn.addEventListener("touchcancel", release, { passive: false });
+
+        btn.addEventListener("mousedown", press);
+        btn.addEventListener("mouseup", release);
+        btn.addEventListener("mouseleave", release);
     }
 
-    bindBtn("up", "ArrowUp");
-    bindBtn("down", "ArrowDown");
-    bindBtn("left", "ArrowLeft");
-    bindBtn("right", "ArrowRight");
+    bindBtn("up", "up");
+    bindBtn("down", "down");
+    bindBtn("left", "left");
+    bindBtn("right", "right");
 
     function createBurst(x, y) {
         for (let i = 0; i < 12; i++) {
@@ -227,10 +246,10 @@ window.onload = function() {
         let moveX = 0;
         let moveY = 0;
 
-        if (keys["ArrowLeft"] || keys["KeyA"] || keys["a"]) moveX -= 1;
-        if (keys["ArrowRight"] || keys["KeyD"] || keys["d"]) moveX += 1;
-        if (keys["ArrowUp"] || keys["KeyW"] || keys["w"]) moveY -= 1;
-        if (keys["ArrowDown"] || keys["KeyS"] || keys["s"]) moveY += 1;
+        if (keys.left) moveX -= 1;
+        if (keys.right) moveX += 1;
+        if (keys.up) moveY -= 1;
+        if (keys.down) moveY += 1;
 
         if (moveX !== 0 && moveY !== 0) {
             moveX *= 0.7071;
@@ -280,7 +299,7 @@ window.onload = function() {
         });
 
         if (dist < player.radius + ai.radius) {
-            gameState = "GAMEOVER";
+            gameState = "YOU'RE KILLED KIDDO💀";
         }
     }
 
@@ -393,5 +412,4 @@ window.onload = function() {
 </html>
 """
 
-# Increased frame height to 650 so full D-Pad fits and page is scrollable
-components.html(game_code, height=650, scrolling=True)
+components.html(game_code, height=670, scrolling=True)
