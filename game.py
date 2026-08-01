@@ -10,7 +10,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("I WILL KILL YOU😈")
-st.caption("🎮 **Controls:** Use Arrow Keys / WASD on PC, or Touch D-Pad on Mobile!")
+st.caption("🎮 **Controls:** WASD / Arrow Keys on PC • Touch D-Pad on Mobile!")
 
 game_code = """
 <!DOCTYPE html>
@@ -39,7 +39,7 @@ game_code = """
         justify-content: space-between;
         width: 100%;
         max-width: 500px;
-        padding: 8px 12px;
+        padding: 10px 14px;
         background: #161b22;
         border-radius: 8px 8px 0 0;
         border: 1px solid #30363d;
@@ -64,14 +64,13 @@ game_code = """
         touch-action: none;
     }
 
-    /* HTML Overlay for Start & Game Over */
     #overlay {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(13, 17, 23, 0.92);
+        background: rgba(13, 17, 23, 0.94);
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -84,7 +83,7 @@ game_code = """
         background: #1f6feb;
         color: white;
         border: none;
-        padding: 12px 28px;
+        padding: 12px 30px;
         font-size: 18px;
         font-weight: bold;
         border-radius: 10px;
@@ -98,7 +97,6 @@ game_code = """
         background: #388bfd;
     }
 
-    /* Mobile Control Pad */
     #dpad {
         display: grid;
         grid-template-columns: repeat(3, 65px);
@@ -174,18 +172,14 @@ window.onload = function() {
     let aiTrail = [];
 
     let player = { x: 250, y: 180, radius: 10, speed: 5.5 };
-    let ai = { x: 40, y: 40, radius: 12, speed: 2.2, baseSpeed: 2.2 };
+    let ai = { x: 40, y: 40, radius: 12, speed: 2.0, baseSpeed: 2.0 };
     let coin = { x: 380, y: 120, radius: 7, pulse: 0 };
 
+    // Universal Key State Engine
     const keys = { up: false, down: false, left: false, right: false };
 
-    // HTML Start/Restart Button Handler
-    startBtn.addEventListener("pointerdown", function(e) {
-        e.preventDefault();
-        resetGame();
-    });
-
-    function resetGame() {
+    // Start / Restart trigger
+    function startGame() {
         score = 0;
         gameState = "PLAYING";
         overlay.style.display = "none";
@@ -203,7 +197,16 @@ window.onload = function() {
 
         document.getElementById("score").innerText = "0";
         document.getElementById("speed").innerText = "1.0x";
+        
+        window.focus();
+        canvas.focus();
     }
+
+    startBtn.addEventListener("click", startGame);
+    startBtn.addEventListener("pointerdown", function(e) {
+        e.preventDefault();
+        startGame();
+    });
 
     function triggerGameOver() {
         gameState = "KILLED💀";
@@ -214,22 +217,36 @@ window.onload = function() {
         overlay.style.display = "flex";
     }
 
-    // Keyboard Listeners (PC)
-    document.addEventListener("keydown", function(e) {
-        if (["ArrowUp", "KeyW"].includes(e.code)) keys.up = true;
-        if (["ArrowDown", "KeyS"].includes(e.code)) keys.down = true;
-        if (["ArrowLeft", "KeyA"].includes(e.code)) keys.left = true;
-        if (["ArrowRight", "KeyD"].includes(e.code)) keys.right = true;
-    });
+    // Comprehensive Keyboard Input Manager (PC WASD + Arrows)
+    function handleKey(e, isPressed) {
+        const k = e.key ? e.key.toLowerCase() : "";
+        const code = e.code || "";
 
-    document.addEventListener("keyup", function(e) {
-        if (["ArrowUp", "KeyW"].includes(e.code)) keys.up = false;
-        if (["ArrowDown", "KeyS"].includes(e.code)) keys.down = false;
-        if (["ArrowLeft", "KeyA"].includes(e.code)) keys.left = false;
-        if (["ArrowRight", "KeyD"].includes(e.code)) keys.right = false;
-    });
+        if (k === "w" || k === "arrowup" || code === "KeyW" || code === "ArrowUp") {
+            keys.up = isPressed;
+            if (e.cancelable) e.preventDefault();
+        }
+        if (k === "s" || k === "arrowdown" || code === "KeyS" || code === "ArrowDown") {
+            keys.down = isPressed;
+            if (e.cancelable) e.preventDefault();
+        }
+        if (k === "a" || k === "arrowleft" || code === "KeyA" || code === "ArrowLeft") {
+            keys.left = isPressed;
+            if (e.cancelable) e.preventDefault();
+        }
+        if (k === "d" || k === "arrowright" || code === "KeyD" || code === "ArrowRight") {
+            keys.right = isPressed;
+            if (e.cancelable) e.preventDefault();
+        }
+    }
 
-    // Modern Ultra-Responsive Pointer Events for Mobile D-Pad
+    window.addEventListener("keydown", (e) => handleKey(e, true));
+    window.addEventListener("keyup", (e) => handleKey(e, false));
+
+    // Force focus when clicking anywhere inside the frame
+    document.body.addEventListener("click", () => { canvas.focus(); });
+
+    // Mobile D-Pad Pointer Engine
     function bindBtn(id, dir) {
         const btn = document.getElementById(id);
         if (!btn) return;
@@ -241,6 +258,9 @@ window.onload = function() {
         btn.addEventListener("pointerup", release);
         btn.addEventListener("pointercancel", release);
         btn.addEventListener("pointerleave", release);
+        
+        btn.addEventListener("touchstart", press, { passive: false });
+        btn.addEventListener("touchend", release, { passive: false });
     }
 
     bindBtn("up", "up");
@@ -290,7 +310,8 @@ window.onload = function() {
             ai.y += (dy / dist) * ai.speed;
         }
 
-        let tailLength = Math.floor(6 + (ai.speed - ai.baseSpeed) * 8);
+        // Speed-based Tail length adjustment
+        let tailLength = Math.floor(6 + (ai.speed - ai.baseSpeed) * 12);
         aiTrail.push({ x: ai.x, y: ai.y });
         while (aiTrail.length > tailLength) {
             aiTrail.shift();
@@ -306,8 +327,9 @@ window.onload = function() {
             coin.x = Math.random() * (canvas.width - 60) + 30;
             coin.y = Math.random() * (canvas.height - 60) + 30;
             
-            ai.speed += 0.25;
-            document.getElementById("speed").innerText = (ai.speed / ai.baseSpeed).toFixed(1) + "x";
+            // GENTLE SPEED INCREASE (+0.08 per coin)
+            ai.speed += 0.08;
+            document.getElementById("speed").innerText = (ai.speed / ai.baseSpeed).toFixed(2) + "x";
         }
 
         particles.forEach((p, index) => {
@@ -326,7 +348,6 @@ window.onload = function() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         if (gameState === "PLAYING") {
-            // Draw Particles
             particles.forEach(p => {
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
@@ -334,7 +355,6 @@ window.onload = function() {
                 ctx.fill();
             });
 
-            // Draw Coin
             coin.pulse += 0.08;
             let currentRadius = coin.radius + Math.sin(coin.pulse) * 1.5;
             ctx.beginPath();
@@ -345,7 +365,6 @@ window.onload = function() {
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // Draw Speed Tail
             aiTrail.forEach((t, idx) => {
                 let ratio = idx / aiTrail.length;
                 ctx.beginPath();
@@ -354,7 +373,6 @@ window.onload = function() {
                 ctx.fill();
             });
 
-            // Draw Red Ball (AI)
             ctx.beginPath();
             ctx.arc(ai.x, ai.y, ai.radius, 0, Math.PI * 2);
             ctx.fillStyle = "#f85149";
@@ -363,7 +381,6 @@ window.onload = function() {
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // Draw Player Blue Ball
             ctx.beginPath();
             ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
             ctx.fillStyle = "#58a6ff";
