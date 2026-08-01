@@ -47,33 +47,67 @@ game_code = """
         font-size: 16px;
         font-weight: bold;
     }
+    #game-container {
+        position: relative;
+        width: 100%;
+        max-width: 500px;
+    }
     canvas {
+        display: block;
+        width: 100%;
+        height: 360px;
         border: 1px solid #30363d;
         border-radius: 0 0 8px 8px;
         background-color: #0d1117;
         box-shadow: 0px 8px 20px rgba(0,0,0,0.6);
         outline: none;
-        max-width: 100%;
         touch-action: none;
-        cursor: pointer;
     }
 
-    /* D-Pad with enhanced spacing */
+    /* HTML Overlay for Start & Game Over */
+    #overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(13, 17, 23, 0.92);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border-radius: 0 0 8px 8px;
+        z-index: 10;
+    }
+
+    .action-btn {
+        background: #1f6feb;
+        color: white;
+        border: none;
+        padding: 12px 28px;
+        font-size: 18px;
+        font-weight: bold;
+        border-radius: 10px;
+        cursor: pointer;
+        margin-top: 15px;
+        box-shadow: 0 4px 12px rgba(31, 111, 235, 0.4);
+        touch-action: manipulation;
+    }
+    .action-btn:active {
+        transform: scale(0.95);
+        background: #388bfd;
+    }
+
+    /* Mobile Control Pad */
     #dpad {
-        display: none;
-        grid-template-columns: repeat(3, 62px);
-        grid-template-rows: repeat(2, 62px);
-        gap: 12px; /* Generous distance between arrows */
+        display: grid;
+        grid-template-columns: repeat(3, 65px);
+        grid-template-rows: repeat(2, 65px);
+        gap: 12px;
         margin-top: 20px;
         margin-bottom: 20px;
         padding: 10px;
-        touch-action: manipulation;
-    }
-
-    @media (pointer: coarse) {
-        #dpad {
-            display: grid;
-        }
+        touch-action: none;
     }
 
     .dbtn {
@@ -87,7 +121,7 @@ game_code = """
         justify-content: center;
         cursor: pointer;
         box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        touch-action: manipulation;
+        touch-action: none;
     }
     .dbtn:active {
         background: #1f6feb;
@@ -107,7 +141,15 @@ game_code = """
     <div>⚡ AI Speed: <span id="speed" style="color:#f85149;">1.0x</span></div>
 </div>
 
-<canvas id="canvas" width="500" height="360" tabindex="0"></canvas>
+<div id="game-container">
+    <canvas id="canvas" width="500" height="360" tabindex="0"></canvas>
+    
+    <div id="overlay">
+        <h2 id="overlay-title" style="margin:0; color:#58a6ff; font-size:28px;">AI PURSUIT</h2>
+        <p id="overlay-desc" style="margin:8px 0 0 0; color:#8b949e; font-size:14px;">Outrun the AI & Collect the Orbs!</p>
+        <button id="start-btn" class="action-btn">🚀 Start Game</button>
+    </div>
+</div>
 
 <div id="dpad">
     <div class="dbtn" id="up">▲</div>
@@ -120,10 +162,12 @@ game_code = """
 window.onload = function() {
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const overlayTitle = document.getElementById("overlay-title");
+    const overlayDesc = document.getElementById("overlay-desc");
+    const startBtn = document.getElementById("start-btn");
 
-    canvas.focus();
-
-    let gameState = "Let's BEGIN😈";
+    let gameState = "START";
 
     let score = 0;
     let particles = [];
@@ -133,49 +177,19 @@ window.onload = function() {
     let ai = { x: 40, y: 40, radius: 12, speed: 2.2, baseSpeed: 2.2 };
     let coin = { x: 380, y: 120, radius: 7, pulse: 0 };
 
-    // Explicit state map for input controls
-    const keys = {
-        up: false,
-        down: false,
-        left: false,
-        right: false
-    };
+    const keys = { up: false, down: false, left: false, right: false };
 
-    function handleCanvasInteraction(e) {
-        if (gameState === "PLAYING") return;
-
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-
-        let clientX = e.clientX;
-        let clientY = e.clientY;
-
-        if (e.changedTouches && e.changedTouches.length > 0) {
-            clientX = e.changedTouches[0].clientX;
-            clientY = e.changedTouches[0].clientY;
-        }
-
-        const mouseX = (clientX - rect.left) * scaleX;
-        const mouseY = (clientY - rect.top) * scaleY;
-
-        const btnX = canvas.width / 2 - 75;
-        const btnY = canvas.height / 2 + 20;
-
-        if (mouseX >= btnX && mouseX <= btnX + 150 && mouseY >= btnY && mouseY <= btnY + 50) {
-            resetGame();
-        }
-    }
-
-    canvas.addEventListener("click", handleCanvasInteraction);
-    canvas.addEventListener("touchstart", function(e) {
-        canvas.focus();
-        handleCanvasInteraction(e);
-    }, { passive: true });
+    // HTML Start/Restart Button Handler
+    startBtn.addEventListener("pointerdown", function(e) {
+        e.preventDefault();
+        resetGame();
+    });
 
     function resetGame() {
         score = 0;
         gameState = "PLAYING";
+        overlay.style.display = "none";
+        
         player.x = 250; player.y = 180;
         ai.x = 40; ai.y = 40;
         ai.speed = ai.baseSpeed;
@@ -184,12 +198,20 @@ window.onload = function() {
         particles = [];
         aiTrail = [];
 
-        // Reset inputs on start
         keys.up = false; keys.down = false;
         keys.left = false; keys.right = false;
 
         document.getElementById("score").innerText = "0";
         document.getElementById("speed").innerText = "1.0x";
+    }
+
+    function triggerGameOver() {
+        gameState = "KILLED💀";
+        overlayTitle.innerText = "KILLED💀";
+        overlayTitle.style.color = "#f85149";
+        overlayDesc.innerText = "Final Score: " + score;
+        startBtn.innerText = "🔄 Play Again";
+        overlay.style.display = "flex";
     }
 
     // Keyboard Listeners (PC)
@@ -207,7 +229,7 @@ window.onload = function() {
         if (["ArrowRight", "KeyD"].includes(e.code)) keys.right = false;
     });
 
-    // Reliable Touch & Mouse Button Bindings
+    // Modern Ultra-Responsive Pointer Events for Mobile D-Pad
     function bindBtn(id, dir) {
         const btn = document.getElementById(id);
         if (!btn) return;
@@ -215,13 +237,10 @@ window.onload = function() {
         const press = (e) => { e.preventDefault(); keys[dir] = true; };
         const release = (e) => { e.preventDefault(); keys[dir] = false; };
 
-        btn.addEventListener("touchstart", press, { passive: false });
-        btn.addEventListener("touchend", release, { passive: false });
-        btn.addEventListener("touchcancel", release, { passive: false });
-
-        btn.addEventListener("mousedown", press);
-        btn.addEventListener("mouseup", release);
-        btn.addEventListener("mouseleave", release);
+        btn.addEventListener("pointerdown", press);
+        btn.addEventListener("pointerup", release);
+        btn.addEventListener("pointercancel", release);
+        btn.addEventListener("pointerleave", release);
     }
 
     bindBtn("up", "up");
@@ -299,107 +318,61 @@ window.onload = function() {
         });
 
         if (dist < player.radius + ai.radius) {
-            gameState = "YOU'RE KILLED KIDDO💀";
+            triggerGameOver();
         }
     }
 
     function render() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (gameState === "START") {
-            ctx.fillStyle = "#58a6ff";
-            ctx.font = "bold 30px sans-serif";
-            ctx.textAlign = "center";
-            ctx.fillText("AI PURSUIT", canvas.width / 2, canvas.height / 2 - 30);
+        if (gameState === "PLAYING") {
+            // Draw Particles
+            particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(227, 179, 65, ${p.life})`;
+                ctx.fill();
+            });
 
-            ctx.fillStyle = "#8b949e";
-            ctx.font = "14px sans-serif";
-            ctx.fillText("Outrun the AI & Collect the Orbs!", canvas.width / 2, canvas.height / 2);
-
-            const btnX = canvas.width / 2 - 75;
-            const btnY = canvas.height / 2 + 20;
-            
-            ctx.fillStyle = "#1f6feb";
+            // Draw Coin
+            coin.pulse += 0.08;
+            let currentRadius = coin.radius + Math.sin(coin.pulse) * 1.5;
             ctx.beginPath();
-            ctx.roundRect(btnX, btnY, 150, 45, 10);
+            ctx.arc(coin.x, coin.y, currentRadius, 0, Math.PI * 2);
+            ctx.fillStyle = "#e3b341";
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "#e3b341";
             ctx.fill();
+            ctx.shadowBlur = 0;
 
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 18px sans-serif";
-            ctx.fillText("🚀 Start Game", canvas.width / 2, btnY + 28);
-            requestAnimationFrame(render);
-            return;
-        }
+            // Draw Speed Tail
+            aiTrail.forEach((t, idx) => {
+                let ratio = idx / aiTrail.length;
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, ai.radius * ratio, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(248, 81, 73, ${ratio * 0.6})`;
+                ctx.fill();
+            });
 
-        particles.forEach(p => {
+            // Draw Red Ball (AI)
             ctx.beginPath();
-            ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(227, 179, 65, ${p.life})`;
-            ctx.fill();
-        });
-
-        coin.pulse += 0.08;
-        let currentRadius = coin.radius + Math.sin(coin.pulse) * 1.5;
-        ctx.beginPath();
-        ctx.arc(coin.x, coin.y, currentRadius, 0, Math.PI * 2);
-        ctx.fillStyle = "#e3b341";
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = "#e3b341";
-        ctx.fill();
-        ctx.shadowBlur = 0;
-
-        aiTrail.forEach((t, idx) => {
-            let ratio = idx / aiTrail.length;
-            ctx.beginPath();
-            ctx.arc(t.x, t.y, ai.radius * ratio, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(248, 81, 73, ${ratio * 0.6})`;
-            ctx.fill();
-        });
-
-        ctx.beginPath();
-        ctx.arc(ai.x, ai.y, ai.radius, 0, Math.PI * 2);
-        ctx.fillStyle = "#f85149";
-        ctx.shadowBlur = 12 + (ai.speed * 2);
-        ctx.shadowColor = "#f85149";
-        ctx.fill();
-        ctx.shadowBlur = 0;
-
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-        ctx.fillStyle = "#58a6ff";
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = "#58a6ff";
-        ctx.fill();
-        ctx.shadowBlur = 0;
-
-        update();
-
-        if (gameState === "GAMEOVER") {
-            ctx.fillStyle = "rgba(13, 17, 23, 0.88)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+            ctx.arc(ai.x, ai.y, ai.radius, 0, Math.PI * 2);
             ctx.fillStyle = "#f85149";
-            ctx.font = "bold 32px sans-serif";
-            ctx.textAlign = "center";
-            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 25);
-
-            ctx.fillStyle = "#8b949e";
-            ctx.font = "16px sans-serif";
-            ctx.fillText("Final Score: " + score, canvas.width / 2, canvas.height / 2 + 5);
-
-            const btnX = canvas.width / 2 - 75;
-            const btnY = canvas.height / 2 + 25;
-            
-            ctx.fillStyle = "#238636";
-            ctx.beginPath();
-            ctx.roundRect(btnX, btnY, 150, 42, 8);
+            ctx.shadowBlur = 12 + (ai.speed * 2);
+            ctx.shadowColor = "#f85149";
             ctx.fill();
+            ctx.shadowBlur = 0;
 
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 16px sans-serif";
-            ctx.fillText("🔄 Play Again", canvas.width / 2, btnY + 26);
-            requestAnimationFrame(render);
-            return;
+            // Draw Player Blue Ball
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fillStyle = "#58a6ff";
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "#58a6ff";
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            update();
         }
 
         requestAnimationFrame(render);
