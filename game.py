@@ -20,21 +20,19 @@ game_code = """
 <style>
     * { 
         box-sizing: border-box; 
-        touch-action: none; 
         user-select: none; 
         -webkit-user-select: none;
         -webkit-touch-callout: none;
     }
     body {
         margin: 0;
-        padding: 0;
+        padding: 0 0 20px 0;
         background-color: #0e1117;
         display: flex;
         flex-direction: column;
         align-items: center;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         color: white;
-        overflow: hidden;
     }
     #ui-panel {
         display: flex;
@@ -62,10 +60,12 @@ game_code = """
 
     #dpad {
         display: none;
-        grid-template-columns: repeat(3, 55px);
-        grid-template-rows: repeat(2, 55px);
-        gap: 6px;
-        margin-top: 12px;
+        grid-template-columns: repeat(3, 60px);
+        grid-template-rows: repeat(2, 60px);
+        gap: 8px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+        touch-action: manipulation;
     }
 
     @media (pointer: coarse) {
@@ -78,13 +78,14 @@ game_code = """
         background: #21262d;
         border: 2px solid #30363d;
         color: #58a6ff;
-        font-size: 22px;
+        font-size: 24px;
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        touch-action: manipulation;
     }
     .dbtn:active {
         background: #1f6feb;
@@ -120,7 +121,6 @@ window.onload = function() {
 
     canvas.focus();
 
-    // Game States: "START", "PLAYING", "GAMEOVER"
     let gameState = "START";
 
     let score = 0;
@@ -133,7 +133,6 @@ window.onload = function() {
 
     const keys = {};
 
-    // Unified Mobile & PC Tap/Click Handler
     function handleCanvasInteraction(e) {
         if (gameState === "PLAYING") return;
 
@@ -155,19 +154,16 @@ window.onload = function() {
         const btnX = canvas.width / 2 - 75;
         const btnY = canvas.height / 2 + 20;
 
-        // Check button hit box
         if (mouseX >= btnX && mouseX <= btnX + 150 && mouseY >= btnY && mouseY <= btnY + 50) {
             resetGame();
         }
     }
 
-    // Canvas Listeners
     canvas.addEventListener("click", handleCanvasInteraction);
     canvas.addEventListener("touchstart", function(e) {
-        e.preventDefault();
         canvas.focus();
         handleCanvasInteraction(e);
-    }, { passive: false });
+    }, { passive: true });
 
     function resetGame() {
         score = 0;
@@ -183,7 +179,6 @@ window.onload = function() {
         document.getElementById("speed").innerText = "1.0x";
     }
 
-    // Keyboard Listeners (PC)
     document.addEventListener("keydown", function(e) {
         if(["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
             e.preventDefault();
@@ -197,7 +192,6 @@ window.onload = function() {
         keys[e.key.toLowerCase()] = false;
     });
 
-    // Touch D-Pad Controls (Mobile)
     function bindBtn(id, key) {
         const btn = document.getElementById(id);
         if (!btn) return;
@@ -399,4 +393,5 @@ window.onload = function() {
 </html>
 """
 
-components.html(game_code, height=560)
+# Increased frame height to 650 so full D-Pad fits and page is scrollable
+components.html(game_code, height=650, scrolling=True)
