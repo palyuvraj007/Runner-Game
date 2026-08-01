@@ -55,7 +55,8 @@ game_code = """
     canvas {
         display: block;
         width: 100%;
-        height: 360px;
+        height: auto;
+        aspect-ratio: 500 / 360;
         border: 1px solid #30363d;
         border-radius: 0 0 8px 8px;
         background-color: #0d1117;
@@ -170,10 +171,10 @@ window.onload = function() {
     let score = 0;
     let particles = [];
     let aiTrail = [];
+    let lastTime = 0;
 
-    // Player starts slightly faster than AI (1.8 speed vs 1.2 speed)
-    let player = { x: 250, y: 180, radius: 10, speed: 1.8, baseSpeed: 1.8 };
-    let ai = { x: 40, y: 40, radius: 12, speed: 1.2, baseSpeed: 1.2 };
+    let player = { x: 250, y: 180, radius: 10, speed: 108, baseSpeed: 108 };
+    let ai = { x: 40, y: 40, radius: 12, speed: 72, baseSpeed: 72 };
     let coin = { x: 380, y: 120, radius: 7, pulse: 0 };
 
     const keys = { up: false, down: false, left: false, right: false };
@@ -200,6 +201,7 @@ window.onload = function() {
         document.getElementById("score").innerText = "0";
         document.getElementById("speed").innerText = "1.0x";
         
+        lastTime = performance.now();
         window.focus();
         canvas.focus();
     }
@@ -278,7 +280,7 @@ window.onload = function() {
         }
     }
 
-    function update() {
+    function update(dt) {
         if (gameState !== "PLAYING") return;
 
         let moveX = 0;
@@ -294,8 +296,8 @@ window.onload = function() {
             moveY *= 0.7071;
         }
 
-        player.x += moveX * player.speed;
-        player.y += moveY * player.speed;
+        player.x += moveX * player.speed * dt;
+        player.y += moveY * player.speed * dt;
 
         player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
         player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
@@ -305,11 +307,10 @@ window.onload = function() {
         let dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist > 0) {
-            ai.x += (dx / dist) * ai.speed;
-            ai.y += (dy / dist) * ai.speed;
+            ai.x += (dx / dist) * ai.speed * dt;
+            ai.y += (dy / dist) * ai.speed * dt;
         }
 
-        // Tail length grows dynamically with score points
         let tailLength = Math.floor(4 + (score / 10) * 3);
         aiTrail.push({ x: ai.x, y: ai.y });
         while (aiTrail.length > tailLength) {
@@ -326,9 +327,8 @@ window.onload = function() {
             coin.x = Math.random() * (canvas.width - 60) + 30;
             coin.y = Math.random() * (canvas.height - 60) + 30;
             
-            // Both Red AI and Blue Player speed increase gently by +0.05 per orb
-            ai.speed += 0.05;
-            player.speed += 0.05;
+            ai.speed += 3;
+            player.speed += 3;
 
             document.getElementById("speed").innerText = (ai.speed / ai.baseSpeed).toFixed(2) + "x";
         }
@@ -345,7 +345,12 @@ window.onload = function() {
         }
     }
 
-    function render() {
+    function render(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        let dt = (timestamp - lastTime) / 1000;
+        if (dt > 0.1) dt = 0.1; 
+        lastTime = timestamp;
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         if (gameState === "PLAYING") {
@@ -377,7 +382,7 @@ window.onload = function() {
             ctx.beginPath();
             ctx.arc(ai.x, ai.y, ai.radius, 0, Math.PI * 2);
             ctx.fillStyle = "#f85149";
-            ctx.shadowBlur = 10 + (ai.speed * 3);
+            ctx.shadowBlur = 10 + ((ai.speed / ai.baseSpeed) * 3);
             ctx.shadowColor = "#f85149";
             ctx.fill();
             ctx.shadowBlur = 0;
@@ -390,13 +395,13 @@ window.onload = function() {
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            update();
+            update(dt);
         }
 
         requestAnimationFrame(render);
     }
 
-    render();
+    requestAnimationFrame(render);
 };
 </script>
 </body>
