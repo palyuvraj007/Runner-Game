@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="THE RUNNER😱", layout="centered", page_icon="🎮")
+st.set_page_config(page_title="AI Pursuit Ultra", layout="centered", page_icon="🎮")
 
 st.markdown("""
     <style>
@@ -9,7 +9,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title(" I WILL KILL YOU😈")
+st.title("⚡ AI Pursuit: Ultra Edition")
 st.caption("🎮 **Controls:** Use Arrow Keys / WASD on PC, or Touch D-Pad on Mobile!")
 
 game_code = """
@@ -18,7 +18,13 @@ game_code = """
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
-    * { box-sizing: border-box; touch-action: manipulation; user-select: none; }
+    * { 
+        box-sizing: border-box; 
+        touch-action: none; 
+        user-select: none; 
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+    }
     body {
         margin: 0;
         padding: 0;
@@ -28,6 +34,7 @@ game_code = """
         align-items: center;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         color: white;
+        overflow: hidden;
     }
     #ui-panel {
         display: flex;
@@ -50,6 +57,7 @@ game_code = """
         outline: none;
         max-width: 100%;
         touch-action: none;
+        cursor: pointer;
     }
 
     #dpad {
@@ -119,37 +127,47 @@ window.onload = function() {
     let particles = [];
     let aiTrail = [];
 
-    // Hyper-responsive player velocity physics
     let player = { x: 250, y: 180, radius: 10, speed: 5.5 };
     let ai = { x: 40, y: 40, radius: 12, speed: 2.2, baseSpeed: 2.2 };
     let coin = { x: 380, y: 120, radius: 7, pulse: 0 };
 
     const keys = {};
 
-    function handleStartClick(e) {
+    // Unified Mobile & PC Tap/Click Handler
+    function handleCanvasInteraction(e) {
+        if (gameState === "PLAYING") return;
+
         const rect = canvas.getBoundingClientRect();
-        const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-        const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-        
-        const mouseX = clientX - rect.left;
-        const mouseY = clientY - rect.top;
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        let clientX = e.clientX;
+        let clientY = e.clientY;
+
+        if (e.changedTouches && e.changedTouches.length > 0) {
+            clientX = e.changedTouches[0].clientX;
+            clientY = e.changedTouches[0].clientY;
+        }
+
+        const mouseX = (clientX - rect.left) * scaleX;
+        const mouseY = (clientY - rect.top) * scaleY;
 
         const btnX = canvas.width / 2 - 75;
-        const btnY = canvas.height / 2 + 15;
+        const btnY = canvas.height / 2 + 20;
 
-        if (mouseX >= btnX && mouseX <= btnX + 150 && mouseY >= btnY && mouseY <= btnY + 45) {
+        // Check button hit box
+        if (mouseX >= btnX && mouseX <= btnX + 150 && mouseY >= btnY && mouseY <= btnY + 50) {
             resetGame();
         }
     }
 
-    canvas.addEventListener("click", function(e) {
-        canvas.focus();
-        if (gameState !== "PLAYING") handleStartClick(e);
-    });
-
+    // Canvas Listeners
+    canvas.addEventListener("click", handleCanvasInteraction);
     canvas.addEventListener("touchstart", function(e) {
-        if (gameState !== "PLAYING") handleStartClick(e);
-    }, { passive: true });
+        e.preventDefault();
+        canvas.focus();
+        handleCanvasInteraction(e);
+    }, { passive: false });
 
     function resetGame() {
         score = 0;
@@ -165,7 +183,7 @@ window.onload = function() {
         document.getElementById("speed").innerText = "1.0x";
     }
 
-    // High-precision Instant Input Handler
+    // Keyboard Listeners (PC)
     document.addEventListener("keydown", function(e) {
         if(["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
             e.preventDefault();
@@ -179,6 +197,7 @@ window.onload = function() {
         keys[e.key.toLowerCase()] = false;
     });
 
+    // Touch D-Pad Controls (Mobile)
     function bindBtn(id, key) {
         const btn = document.getElementById(id);
         if (!btn) return;
@@ -211,7 +230,6 @@ window.onload = function() {
     function update() {
         if (gameState !== "PLAYING") return;
 
-        // Instant vector response for Player
         let moveX = 0;
         let moveY = 0;
 
@@ -220,7 +238,6 @@ window.onload = function() {
         if (keys["ArrowUp"] || keys["KeyW"] || keys["w"]) moveY -= 1;
         if (keys["ArrowDown"] || keys["KeyS"] || keys["s"]) moveY += 1;
 
-        // Normalize speed diagonally for snappy tight controls
         if (moveX !== 0 && moveY !== 0) {
             moveX *= 0.7071;
             moveY *= 0.7071;
@@ -229,11 +246,9 @@ window.onload = function() {
         player.x += moveX * player.speed;
         player.y += moveY * player.speed;
 
-        // Screen Boundaries
         player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
         player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
 
-        // AI Chaser logic
         let dx = player.x - ai.x;
         let dy = player.y - ai.y;
         let dist = Math.sqrt(dx * dx + dy * dy);
@@ -243,14 +258,12 @@ window.onload = function() {
             ai.y += (dy / dist) * ai.speed;
         }
 
-        // Dynamic Speed-based Tail length calculation
         let tailLength = Math.floor(6 + (ai.speed - ai.baseSpeed) * 8);
         aiTrail.push({ x: ai.x, y: ai.y });
         while (aiTrail.length > tailLength) {
             aiTrail.shift();
         }
 
-        // Coin Collision
         let cDx = player.x - coin.x;
         let cDy = player.y - coin.y;
         if (Math.sqrt(cDx * cDx + cDy * cDy) < player.radius + coin.radius) {
@@ -261,11 +274,10 @@ window.onload = function() {
             coin.x = Math.random() * (canvas.width - 60) + 30;
             coin.y = Math.random() * (canvas.height - 60) + 30;
             
-            ai.speed += 0.25; // Speed multiplier increase
+            ai.speed += 0.25;
             document.getElementById("speed").innerText = (ai.speed / ai.baseSpeed).toFixed(1) + "x";
         }
 
-        // Particle FX
         particles.forEach((p, index) => {
             p.x += p.vx;
             p.y += p.vy;
@@ -273,7 +285,6 @@ window.onload = function() {
             if (p.life <= 0) particles.splice(index, 1);
         });
 
-        // Game Over Condition
         if (dist < player.radius + ai.radius) {
             gameState = "GAMEOVER";
         }
@@ -292,7 +303,6 @@ window.onload = function() {
             ctx.font = "14px sans-serif";
             ctx.fillText("Outrun the AI & Collect the Orbs!", canvas.width / 2, canvas.height / 2);
 
-            // Start Button
             const btnX = canvas.width / 2 - 75;
             const btnY = canvas.height / 2 + 20;
             
@@ -308,7 +318,6 @@ window.onload = function() {
             return;
         }
 
-        // Draw Burst Particles
         particles.forEach(p => {
             ctx.beginPath();
             ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
@@ -316,7 +325,6 @@ window.onload = function() {
             ctx.fill();
         });
 
-        // Draw Coin
         coin.pulse += 0.08;
         let currentRadius = coin.radius + Math.sin(coin.pulse) * 1.5;
         ctx.beginPath();
@@ -327,7 +335,6 @@ window.onload = function() {
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Draw Dynamic AI Speed Tail
         aiTrail.forEach((t, idx) => {
             let ratio = idx / aiTrail.length;
             ctx.beginPath();
@@ -336,7 +343,6 @@ window.onload = function() {
             ctx.fill();
         });
 
-        // Draw Red Ball (AI)
         ctx.beginPath();
         ctx.arc(ai.x, ai.y, ai.radius, 0, Math.PI * 2);
         ctx.fillStyle = "#f85149";
@@ -345,7 +351,6 @@ window.onload = function() {
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Draw Player Blue Ball
         ctx.beginPath();
         ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
         ctx.fillStyle = "#58a6ff";
@@ -356,7 +361,6 @@ window.onload = function() {
 
         update();
 
-        // Game Over Overlay & Play Again
         if (gameState === "GAMEOVER") {
             ctx.fillStyle = "rgba(13, 17, 23, 0.88)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
