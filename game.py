@@ -171,8 +171,8 @@ window.onload = function() {
     let particles = [];
     let aiTrail = [];
 
-    let player = { x: 250, y: 180, radius: 10, speed: 5.5 };
-    // Reduced baseSpeed to 1.2 for a very gentle start
+    // Player starts slightly faster than AI (1.8 speed vs 1.2 speed)
+    let player = { x: 250, y: 180, radius: 10, speed: 1.8, baseSpeed: 1.8 };
     let ai = { x: 40, y: 40, radius: 12, speed: 1.2, baseSpeed: 1.2 };
     let coin = { x: 380, y: 120, radius: 7, pulse: 0 };
 
@@ -184,8 +184,11 @@ window.onload = function() {
         overlay.style.display = "none";
         
         player.x = 250; player.y = 180;
+        player.speed = player.baseSpeed;
+        
         ai.x = 40; ai.y = 40;
         ai.speed = ai.baseSpeed;
+        
         coin.x = Math.random() * (canvas.width - 60) + 30;
         coin.y = Math.random() * (canvas.height - 60) + 30;
         particles = [];
@@ -323,8 +326,10 @@ window.onload = function() {
             coin.x = Math.random() * (canvas.width - 60) + 30;
             coin.y = Math.random() * (canvas.height - 60) + 30;
             
-            // Gentle speed scaling: +0.05 per collected orb
+            // Both Red AI and Blue Player speed increase gently by +0.05 per orb
             ai.speed += 0.05;
+            player.speed += 0.05;
+
             document.getElementById("speed").innerText = (ai.speed / ai.baseSpeed).toFixed(2) + "x";
         }
 
@@ -361,7 +366,6 @@ window.onload = function() {
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // Render glowing tail that gets longer as score increases
             aiTrail.forEach((t, idx) => {
                 let ratio = idx / aiTrail.length;
                 ctx.beginPath();
