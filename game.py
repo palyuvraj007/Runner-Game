@@ -172,13 +172,12 @@ window.onload = function() {
     let aiTrail = [];
 
     let player = { x: 250, y: 180, radius: 10, speed: 5.5 };
-    let ai = { x: 40, y: 40, radius: 12, speed: 2.0, baseSpeed: 2.0 };
+    // Reduced baseSpeed to 1.2 for a very gentle start
+    let ai = { x: 40, y: 40, radius: 12, speed: 1.2, baseSpeed: 1.2 };
     let coin = { x: 380, y: 120, radius: 7, pulse: 0 };
 
-    // Universal Key State Engine
     const keys = { up: false, down: false, left: false, right: false };
 
-    // Start / Restart trigger
     function startGame() {
         score = 0;
         gameState = "PLAYING";
@@ -217,7 +216,6 @@ window.onload = function() {
         overlay.style.display = "flex";
     }
 
-    // Comprehensive Keyboard Input Manager (PC WASD + Arrows)
     function handleKey(e, isPressed) {
         const k = e.key ? e.key.toLowerCase() : "";
         const code = e.code || "";
@@ -243,10 +241,8 @@ window.onload = function() {
     window.addEventListener("keydown", (e) => handleKey(e, true));
     window.addEventListener("keyup", (e) => handleKey(e, false));
 
-    // Force focus when clicking anywhere inside the frame
     document.body.addEventListener("click", () => { canvas.focus(); });
 
-    // Mobile D-Pad Pointer Engine
     function bindBtn(id, dir) {
         const btn = document.getElementById(id);
         if (!btn) return;
@@ -310,8 +306,8 @@ window.onload = function() {
             ai.y += (dy / dist) * ai.speed;
         }
 
-        // Speed-based Tail length adjustment
-        let tailLength = Math.floor(6 + (ai.speed - ai.baseSpeed) * 12);
+        // Tail length grows dynamically with score points
+        let tailLength = Math.floor(4 + (score / 10) * 3);
         aiTrail.push({ x: ai.x, y: ai.y });
         while (aiTrail.length > tailLength) {
             aiTrail.shift();
@@ -327,8 +323,8 @@ window.onload = function() {
             coin.x = Math.random() * (canvas.width - 60) + 30;
             coin.y = Math.random() * (canvas.height - 60) + 30;
             
-            // GENTLE SPEED INCREASE (+0.08 per coin)
-            ai.speed += 0.08;
+            // Gentle speed scaling: +0.05 per collected orb
+            ai.speed += 0.05;
             document.getElementById("speed").innerText = (ai.speed / ai.baseSpeed).toFixed(2) + "x";
         }
 
@@ -365,18 +361,19 @@ window.onload = function() {
             ctx.fill();
             ctx.shadowBlur = 0;
 
+            // Render glowing tail that gets longer as score increases
             aiTrail.forEach((t, idx) => {
                 let ratio = idx / aiTrail.length;
                 ctx.beginPath();
                 ctx.arc(t.x, t.y, ai.radius * ratio, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(248, 81, 73, ${ratio * 0.6})`;
+                ctx.fillStyle = `rgba(248, 81, 73, ${ratio * 0.65})`;
                 ctx.fill();
             });
 
             ctx.beginPath();
             ctx.arc(ai.x, ai.y, ai.radius, 0, Math.PI * 2);
             ctx.fillStyle = "#f85149";
-            ctx.shadowBlur = 12 + (ai.speed * 2);
+            ctx.shadowBlur = 10 + (ai.speed * 3);
             ctx.shadowColor = "#f85149";
             ctx.fill();
             ctx.shadowBlur = 0;
